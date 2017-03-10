@@ -21,11 +21,15 @@ var url = require('url');
 var sql = require('mssql');
 
 
-var SERVER = 'MFAULCON6540\\SQL_2008_R2';
+//var SERVER = 'MFAULCON6540\\SQL_2008_R2';
+var SERVER = 'GLASSITER6530\\MSSQLSERVERR2';
 var PORT = 8001;
 
 var USERNAME = 'pmuser';
 var PASSWORD = 'pmtrip00';
+
+// var USERNAME = 'glassiter';
+// var PASSWORD = 'gl';
 
 var RM_DB_CONTEXT = ':V:^RMDataAccess#0.00^:Z:^&N&#RMBus#&S&#L#&UID&#13#&AGN&#1#^';
 
@@ -61,9 +65,16 @@ var parmTypeLookupTable = {
 
 
 // Configure our HTTP server to handle input web requests.
-var server = http.createServer(function (request, response) {
+    var server = http.createServer(function (request, response) {
 
     console.log('Incoming Request! -- url: ' + request.url);
+
+    if (request.url === '/favicon.ico') {
+        console.log(".ico file requested--ignored.");
+        response.writeHead(200, { 'Content-Type': 'text/plain' });
+        response.end(errMsg + '\n');        
+        return;
+    }
 
     var queryData = url.parse(request.url, true).query;
 
@@ -101,11 +112,13 @@ var server = http.createServer(function (request, response) {
         database: DATABASE,
         user: USERNAME,
         password: PASSWORD,
-        port: 1433,
+        // port: 1433,     
+        port: 49725,
 		
 		// not needed
 		options: {
-		  encrypt: true  // Use this if you're on Windows Azure 
+		//   encrypt: true  // Use this if you're on Windows Azure 
+             encrypt: false
 		}
     };
         
