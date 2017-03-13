@@ -20,7 +20,6 @@ var http = require('http');
 var url = require('url');
 var sql = require('mssql');
 
-
 //var SERVER = 'MFAULCON6540\\SQL_2008_R2';
 var SERVER = 'GLASSITER6530\\MSSQLSERVERR2';
 var PORT = 8001;
