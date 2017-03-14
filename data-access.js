@@ -11,37 +11,54 @@
  *
  */
 
-exports.rmSql = function (agency, spName, params) {
+exports.rmSql = function (server,port,database,proc,params,username,password,context) {
   var debug = require("debug")('data-access');
 
-    debug('booting');
+  var options = Object.assign({
+      server: server,      
+      database: database,
+      port: port,
+      proc: proc,
+      params: params,
+      user: username,
+      password: password,
+      context: context
+    },typeof server === "object" ? server : {});
+
+  // config
+  var SERVER = 'GLASSITER6530\\MSSQLSERVERR2';
+  var RM_DB_CONTEXT = ':V:^RMDataAccess#0.00^:Z:^&N&#RMBus#&S&#L#&UID&#13#&AGN&#1#^';
+
+  var USERNAME = 'pmuser';
+  var PASSWORD = 'pmtrip00';
+  var PORT = 49725;
+  
+  // default db config
+  var dbConfig = {
+      server: options.server,
+      database: options.database,    
+      port: options.port || PORT,
+      proc: options.proc,
+      params: options.params,
+      user: options.user || USERNAME,
+      password: options.password || PASSWORD,
+      context: options.context || RM_DB_CONTEXT,     
+
+      options: {
+        encrypt: false
+      }
+  };
+
+  debug('dbConfig:  ',dbConfig);
   
   return new Promise((resolve,reject) => {
     var sql = require('mssql');
-
-    var SERVER = 'GLASSITER6530\\MSSQLSERVERR2';
-    var PORT = 8001;
-
-    var USERNAME = 'pmuser';
-    var PASSWORD = 'pmtrip00';
-
-    var RM_DB_CONTEXT = ':V:^RMDataAccess#0.00^:Z:^&N&#RMBus#&S&#L#&UID&#13#&AGN&#1#^';
 
     var INDEX_PARM_NAME = 0;
     var INDEX_PARM_TYPE = 1;
     var INDEX_PARM_VALUE = 2;
 
     var parmTypeLookupTable = {
-
-      //"n": sql.Int,
-
-      //"s": sql.VarChar(255),
-      //"s50": sql.VarChar(50),
-      //"s100": sql.VarChar(100),
-      //"s255": sql.VarChar(255),
-
-      //"d": sql.",
-
       "s": sql.NVarChar,
       "n": sql.Int,
       "b": sql.Bit,
@@ -57,39 +74,23 @@ exports.rmSql = function (agency, spName, params) {
       "Table": sql.TVP
     };
 
-    var DATABASE = 'RM_' + agency;
-
-    var dbConfig = {
-        server: SERVER,
-        database: DATABASE,
-        user: USERNAME,
-        password: PASSWORD,
-        port: 49725,
-
-        options: {
-          encrypt: false
-        }
-    };
-
     // connect to database
     sql.connect(dbConfig).then(function () {
       debug('CONNECTED');
-      debug('Stored Proc: ' + spName);
+      debug('Stored Proc: ' + options.proc);
 
-      // add Parametersa
+      // add Parameters
       var sqlRequest = new sql.Request();
-      sqlRequest.input('ContextStr', sql.VarChar(255), RM_DB_CONTEXT);
-      if (params) {
-
-        var parmList = params.split('|');
+      sqlRequest.input('ContextStr', sql.VarChar(255), dbConfig.context);
+      if (options.params) {
+        var parmList = options.params.split('|');
         for (var p in parmList) {
-          debug('parm [' + p + ']: ' + parmList[p]);
-
           var parmData = parmList[p].split('!');
 
           var parmName = parmData[INDEX_PARM_NAME];
           var parmType = parmTypeLookupTable[parmData[INDEX_PARM_TYPE]];
           var parmValue = parmData[INDEX_PARM_VALUE];
+          debug('parm [' + p + '] (' + parmData[INDEX_PARM_TYPE] + ') = ' + parmList[p]);          
 
           // special Case for Dates
           if (parmType == sql.DateTime) {
@@ -120,10 +121,10 @@ exports.rmSql = function (agency, spName, params) {
         }
       }
 
-      debug('executing proc: ' + spName);
+      debug('executing proc: ' + options.proc);
 
       // Execute the stored proc
-      sqlRequest.execute(spName)
+      sqlRequest.execute(options.proc)
         .then(function (recordsets) {
         debug('success');
 
