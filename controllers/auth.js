@@ -13,30 +13,53 @@ exports.auth = function(req, res) {
 exports.login = function(req, res) {
   var dataaccess = require('../data-access.js');  
 
+  // var dbConnection = {
+  //     server: 'GLASSITER6530\\MSSQLSERVERR2',
+  //     port: 49725,
+  //     database: 'RM_PA_DuFast',
+  //     proc: 'spFRGetHeadwayInformation',
+  //     params: [
+  //       {
+  //         name: "Date",
+  //         type: dataaccess.sqlType.Date,
+  //         value: 'Date!dt!Tue Feb 28 2017 07:31:03 GMT-0500 (Eastern Standard Time)'
+  //       },
+  //       {
+  //         name: "SubrouteIDs",
+  //         type: dataaccess.sqlType.Table,
+  //         value: ''
+  //       }    
+  //     ]
+  // };
+
   var dbConnection = {
       server: 'GLASSITER6530\\MSSQLSERVERR2',
-      port: 49725,
       database: 'RM_PA_DuFast',
-      proc: 'spFRGetHeadwayInformation',
+      port: 49725,      
+      proc: 'spUserGetByAgencyIDAndUsername',
       params: [
         {
-          name: "Date",
-          type: dataaccess.sqlType.Date,
-          value: 'Date!dt!Tue Feb 28 2017 07:31:03 GMT-0500 (Eastern Standard Time)'
+          name: "AgencyID",
+          type: dataaccess.sqlType.Number,
+          value: 1
         },
         {
-          name: "SubrouteIDs",
-          type: dataaccess.sqlType.Table,
-          value: ''
-        }    
+          name: "Username",
+          type: dataaccess.sqlType.String,
+          value: 'glassiter'
+        }        
       ]
   };
+  
   
 //  dataaccess.rmSql('GLASSITER6530\\MSSQLSERVERR2',49725,'RM_PA_DuFast','spFRGetHeadwayInformation','Date!dt!Tue Feb 28 2017 07:31:03 GMT-0500 (Eastern Standard Time)|SubrouteIDs!t!')
   dataaccess.connection = dbConnection;
   dataaccess.rmSql()
   .then((results) => {
     res.send(results);    
+
+    var json = JSON.parse(results);
+    
     debug("Successful execution from data-access:  ");    
   })
   .catch((err) => {
