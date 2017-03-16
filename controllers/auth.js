@@ -13,16 +13,28 @@ exports.auth = function(req, res) {
 exports.login = function(req, res) {
   var dataaccess = require('../data-access.js');  
 
-  var dbConfig = {
+  var dbConnection = {
       server: 'GLASSITER6530\\MSSQLSERVERR2',
       port: 49725,
       database: 'RM_PA_DuFast',
       proc: 'spFRGetHeadwayInformation',
-      params: 'Date!dt!Tue Feb 28 2017 07:31:03 GMT-0500 (Eastern Standard Time)|SubrouteIDs!t!'
+      params: [
+        {
+          name: "Date",
+          type: dataaccess.sqlType.Date,
+          value: 'Date!dt!Tue Feb 28 2017 07:31:03 GMT-0500 (Eastern Standard Time)'
+        },
+        {
+          name: "SubrouteIDs",
+          type: dataaccess.sqlType.Table,
+          value: ''
+        }    
+      ]
   };
-    
+  
 //  dataaccess.rmSql('GLASSITER6530\\MSSQLSERVERR2',49725,'RM_PA_DuFast','spFRGetHeadwayInformation','Date!dt!Tue Feb 28 2017 07:31:03 GMT-0500 (Eastern Standard Time)|SubrouteIDs!t!')
-  dataaccess.rmSql(dbConfig)
+  dataaccess.connection = dbConnection;
+  dataaccess.rmSql()
   .then((results) => {
     res.send(results);    
     debug("Successful execution from data-access:  ");    

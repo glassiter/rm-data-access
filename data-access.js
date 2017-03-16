@@ -1,64 +1,25 @@
 /*
- * data-access.js
- * 
- * Copyright 2016-2017, RouteMatch Software Inc.
- * 
- * A lightweight service (written in Node.js) that allows us to call stored procs directly from the client.
- *   -- Designed to connect to RouteMatch database (as of header creation date roughly ~29.845)
- *
- * Date     Who What
- * ======== === =================================================================================================
- *
- */
+* data-access.js
+* 
+* Copyright 2016-2017, RouteMatch Software Inc.
+* 
+* A lightweight service (written in Node.js) that allows us to call stored procs directly from the client.
+*   -- Designed to connect to RouteMatch database (as of header creation date roughly ~29.845)
+*
+* Date     Who What
+* ======== === =================================================================================================
+*
+*/
+var sql = require('mssql');
 
-exports.rmSql = function (server,port,database,proc,params,username,password,context) {
-  var debug = require("debug")('data-access');
+// config
+exports.SERVER = 'GLASSITER6530\\MSSQLSERVERR2';
+exports.CONTEXT = ':V:^RMDataAccess#0.00^:Z:^&N&#RMBus#&S&#L#&UID&#13#&AGN&#1#^';
+exports.USERNAME = 'pmuser';
+exports.PASSWORD = 'pmtrip00';
+exports.PORT = 49725;
 
-  var options = Object.assign({
-      server: server,      
-      database: database,
-      port: port,
-      proc: proc,
-      params: params,
-      user: username,
-      password: password,
-      context: context
-    },typeof server === "object" ? server : {});
-
-  // config
-  var SERVER = 'GLASSITER6530\\MSSQLSERVERR2';
-  var RM_DB_CONTEXT = ':V:^RMDataAccess#0.00^:Z:^&N&#RMBus#&S&#L#&UID&#13#&AGN&#1#^';
-
-  var USERNAME = 'pmuser';
-  var PASSWORD = 'pmtrip00';
-  var PORT = 49725;
-  
-  // default db config
-  var dbConfig = {
-      server: options.server,
-      database: options.database,    
-      port: options.port || PORT,
-      proc: options.proc,
-      params: options.params,
-      user: options.user || USERNAME,
-      password: options.password || PASSWORD,
-      context: options.context || RM_DB_CONTEXT,     
-
-      options: {
-        encrypt: false
-      }
-  };
-
-  debug('dbConfig:  ',dbConfig);
-  
-  return new Promise((resolve,reject) => {
-    var sql = require('mssql');
-
-    var INDEX_PARM_NAME = 0;
-    var INDEX_PARM_TYPE = 1;
-    var INDEX_PARM_VALUE = 2;
-
-    var parmTypeLookupTable = {
+Object.freeze(exports.sqlType = {
       "s": sql.NVarChar,
       "n": sql.Int,
       "b": sql.Bit,
@@ -72,28 +33,77 @@ exports.rmSql = function (server,port,database,proc,params,username,password,con
       "Date": sql.DateTime,
       "Double": sql.Float,
       "Table": sql.TVP
-    };
+    }); 
+
+exports.connection = {
+      server: exports.SERVER,
+      database: null,    
+      port: exports.PORT,
+      proc: null,
+      params: null,
+      user: exports.USERNAME,
+      password: exports.PASSWORD,
+      context: exports.CONTEXT,
+
+      options: {
+        encrypt: false
+      }
+  };
+
+exports.rmSql = function (server,port,database,proc,params,username,password,context) {
+  var debug = require("debug")('data-access');  
+
+  var options = Object.assign({
+      server: server,      
+      database: database,
+      port: port,
+      proc: proc,
+      params: params,
+      user: username,
+      password: password,
+      context: context
+    }, arguments.length == 0 ? exports.connection : typeof server === "object" ? server : {});
+  
+  // default db config
+  var dbConfig = {
+      server: options.server,
+      database: options.database,    
+      port: options.port || PORT,
+      proc: options.proc,
+      params: options.params,
+      user: options.user || exports.USERNAME,
+      password: options.password || exports.PASSWORD,
+      context: options.context || exports.CONTEXT,     
+
+      options: {
+        encrypt: false
+      }
+  };
+
+  debug('dbConfig:  ',dbConfig);
+  
+  return new Promise((resolve,reject) => {
+    var INDEX_PARM_NAME = 0;
+    var INDEX_PARM_TYPE = 1;
+    var INDEX_PARM_VALUE = 2;
 
     // connect to database
     sql.connect(dbConfig).then(function () {
       debug('CONNECTED');
-      debug('Stored Proc: ' + options.proc);
+      debug('Stored Proc: ' + dbConfig.proc);
 
       // add Parameters
       var sqlRequest = new sql.Request();
       sqlRequest.input('ContextStr', sql.VarChar(255), dbConfig.context);
-      if (options.params) {
-        var parmList = options.params.split('|');
-        for (var p in parmList) {
-          var parmData = parmList[p].split('!');
-
-          var parmName = parmData[INDEX_PARM_NAME];
-          var parmType = parmTypeLookupTable[parmData[INDEX_PARM_TYPE]];
-          var parmValue = parmData[INDEX_PARM_VALUE];
-          debug('parm [' + p + '] (' + parmData[INDEX_PARM_TYPE] + ') = ' + parmList[p]);          
+      if (dbConfig.params) {
+          for (let param of dbConfig.params) {
+          var parmName = param.name;
+          var parmType = param.type;
+          var parmValue = param.value;
+          debug('parm [' + parmName + '] (' + parmType + ') = ' + parmValue);          
 
           // special Case for Dates
-          if (parmType == sql.DateTime) {
+          if (parmType === sql.DateTime) {
             parmValue = new Date(parmValue);
             debug('date parm value: ' + parmValue);
           }
@@ -105,7 +115,7 @@ exports.rmSql = function (server,port,database,proc,params,username,password,con
             }
           }
 
-          if (parmType == sql.TVP) {
+          if (parmType === sql.TVP) {
             debug('handling table ...');
             if (!parmValue) {
               debug('setting to empty table with on column [id] ... only supported implementation currently');
@@ -121,10 +131,10 @@ exports.rmSql = function (server,port,database,proc,params,username,password,con
         }
       }
 
-      debug('executing proc: ' + options.proc);
+      debug('executing proc: ' + dbConfig.proc);
 
       // Execute the stored proc
-      sqlRequest.execute(options.proc)
+      sqlRequest.execute(dbConfig.proc)
         .then(function (recordsets) {
         debug('success');
 
@@ -192,4 +202,4 @@ exports.rmSql = function (server,port,database,proc,params,username,password,con
         reject(Error("Connection error in data-access.js:  " + err));
     });
   });
-}
+};
