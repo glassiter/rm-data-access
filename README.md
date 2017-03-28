@@ -5,7 +5,7 @@ Installation
 =================
 To install using npm.
 
-    npm install 
+    npm install rm-data-access --save-dev
     
 Usage
 =================
