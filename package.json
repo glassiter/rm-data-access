@@ -5,6 +5,7 @@
   "main": "server.js",
   "dependencies": {},
   "devDependencies": {
+    "cors": "^2.8.1",
     "cross-env": "^3.2.3",
     "debug": "^2.6.2",
     "express": "^3.21.2",

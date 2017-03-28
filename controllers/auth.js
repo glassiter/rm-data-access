@@ -46,7 +46,7 @@ exports.login = function(req, res) {
         {
           name: "Username",
           type: dataaccess.sqlType.String,
-          value: 'glassiter'
+          value: req.body.username
         }        
       ]
   };
@@ -56,11 +56,17 @@ exports.login = function(req, res) {
   dataaccess.connection = dbConnection;
   dataaccess.rmSql()
   .then((results) => {
-    res.send(results);    
-
     var json = JSON.parse(results);
     
     debug("Successful execution from data-access:  ");    
+    debug("results:  " + results);
+
+    var authenticated = "fail";
+    if (json && json.features && json.features.length > 0) {
+        authenticated = json.features[0].Password === res.req.body.password ? "ok" : "fail";
+    }
+
+    res.send({"status" : authenticated});        
   })
   .catch((err) => {
     debug("Error received from data-access:  " + err);

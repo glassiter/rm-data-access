@@ -1,6 +1,9 @@
 var express = require('express');
+var cors = require("cors");
 
 var app = express();
+app.use(cors());
+
 // confifure the server to parse the body
 app.configure(function(){
     app.use(express.bodyParser());
@@ -10,7 +13,7 @@ app.configure(function(){
 require('./routes')(app);
 
 // generic GET endpoint
-app.get('/', function(req, res) {
+app.get('/', function(req, res,next) {
   res.send('Hello VA!\n');
 });
 
